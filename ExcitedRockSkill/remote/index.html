@@ -1,0 +1,115 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ExcitedRockSkill</title>
+	<script type="text/javascript" src="mind-framework.js"></script>
+		<script type="text/javascript">
+		
+		var timer
+		var maxtime = 30 //10秒的定时器
+		var isStop = true
+       		
+		mind.init({callback: function(robot) {
+				skillID="28518ebf";
+				robot.connectSkill({
+					skillID: skillID
+				});
+				
+				
+				if(window.DeviceMotionEvent){
+		    		window.addEventListener('devicemotion',deviceMotionHandler,false);
+				}else{
+		    		alert("can't devicemotion");
+				}
+				
+				//获取加速度信息
+			  	//通过监听上一步获取到的x, y, z 值在一定时间范围内的变化率，进行设备是否有进行晃动的判断。
+			  	//而为了防止正常移动的误判，需要给该变化率设置一个合适的临界值。
+			  	var SHAKE_THRESHOLD = 1000;
+				var last_update = 0;
+				var x, y, z, last_x = 0, last_y = 0, last_z = 0;
+				function deviceMotionHandler(eventData) {
+		        var acceleration =eventData.accelerationIncludingGravity;
+		        var curTime = new Date().getTime();
+		        if ((curTime-last_update)> 10) {
+		            var diffTime = curTime -last_update;
+		            last_update = curTime;
+		            x = acceleration.x;
+		            y = acceleration.y;
+		            z = acceleration.z;
+		            var speed = Math.abs(x +y + z - last_x - last_y - last_z) / diffTime * 10000;
+		            if (speed > SHAKE_THRESHOLD) {
+		               // Do something
+						//修改机器人移动速度
+						if (isStop == false) {
+							document.getElementById('speed_label').innerHTML = speed;		
+							robot.sendData({
+								skillID: skillID, 
+								data : "walkSpeed"+","+speed,
+							})
+						}
+		            }
+		            last_x = x;
+		            last_y = y;
+		            last_z = z;
+					}
+				}
+				
+				
+				function countDown(){
+					console.log(maxtime);
+		            if(maxtime>0){
+		                msg = maxtime+"seconds";				
+						document.getElementById('test_label').innerHTML = msg;
+		                --maxtime;
+		            }else if(maxtime==0){
+		                clearInterval(timer);
+						isStop = true
+						//停止walk				
+						robot.sendData({
+							skillID: skillID, 
+							data: "stopWalk"
+						})
+						
+						//摆excited姿势
+						robot.sendData({
+							skillID: skillID, 
+							data: "excited"
+						})
+					}
+		        }
+				
+				document.getElementById("start_button").onclick = function() {
+						timer = setInterval(function(){ countDown() },1000);
+						isStop = false;
+						maxtime = 30
+						robot.sendData({
+						skillID: skillID, 
+						data: "start"
+					})
+				}
+
+				document.getElementById("down").onclick = function() {
+						clearInterval(timer);
+						isStop = true
+
+						robot.sendData({
+							skillID: skillID, 
+							data: "stopWalk"
+						})
+				}
+				
+			}});		
+				
+		</script>
+</head>
+<body>
+<br/><br/>
+		<button id="start_button">Start</button><br/><br/>
+		<button id="down">Stop</button><br/><br/>
+		<label id="test_label"></label><br/><br/>
+		<label id="speed_label"></label><br/><br/>
+		
+</body>
+</html>
+
